@@ -1,9 +1,9 @@
 #include <iostream>
-#include "OnnxModel.h"
+#include "ORTWrapper.h"
 
 namespace nlp::inference {
 
-    OnnxModel::OnnxModel(const std::string& model_path) :
+    ORTWrapper::ORTWrapper(const std::string& model_path) :
         env(ORT_LOGGING_LEVEL_WARNING, "BERT_Inference"),
         session(env, std::wstring(model_path.begin(), model_path.end()).c_str(), Ort::SessionOptions{nullptr}),
         memory_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault))
@@ -11,7 +11,7 @@ namespace nlp::inference {
 
     }
 
-    std::vector<float> OnnxModel::run(
+    std::vector<float> ORTWrapper::run(
         const std::vector<int64_t>& input_ids,
         const std::vector<int64_t>& mask,
         const std::vector<int64_t>& type_ids

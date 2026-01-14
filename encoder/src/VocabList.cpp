@@ -3,42 +3,39 @@
 
 namespace nlp::encoder {
 
-    bool VocabList::set_token(const std::string& token, uint32_t id) {
+    bool VocabList::set_token(const std::string& token_str, const int64_t token_id) {
         // Check the token and id.
-        if (token.empty() || string_to_id_map_.contains(token)) return false;
+        if (token_str.empty() || string_to_id_map_.contains(token_str)) return false;
 
         // Check that we don't overwrite data.
-        if (id < id_to_string_map_.size() && !id_to_string_map_[id].empty()) return false;
+        if (token_id < id_to_string_map_.size() && !id_to_string_map_[token_id].empty()) return false;
 
         // Ensure vector is large enough.
-        if (id >= id_to_string_map_.size()) id_to_string_map_.resize(id + 1);
+        if (token_id >= id_to_string_map_.size()) id_to_string_map_.resize(token_id + 1);
 
         // Set the mappings.
-        string_to_id_map_[token] = id;
-        id_to_string_map_[id] = token;
-
-        switch (config.get_special_role(token)) {
-            case TokenRole::Padding:   special_ids_.padding = id; break;
-            case TokenRole::Unknown:   special_ids_.unknown = id; break;
-            case TokenRole::Classification:   special_ids_.classification = id; break;
-            case TokenRole::Separator:   special_ids_.separator = id; break;
-            case TokenRole::Mask:   special_ids_.mask = id; break;
-            default: break;
-        }
+        string_to_id_map_[token_str] = token_id;
+        id_to_string_map_[token_id] = token_str;
         return true;
     }
 
-    std::optional<uint32_t> VocabList::token_to_id(const std::string& token) const {
-        auto got = string_to_id_map_.find(token);
+    bool VocabList::set_special_token(const std::string& token_str, TokenRole token_role) {
+        if (token_str.empty() || special_tokens_map_.contains(token_role)) return false;
+        special_tokens_map_[token_role] = token_str;
+        return true;
+    }
+
+    std::optional<int64_t> VocabList::token_to_id(const std::string& token_str) const {
+        auto got = string_to_id_map_.find(token_str);
         if (got == string_to_id_map_.end()) return std::nullopt;
         return got->second;
     }
 
-    std::optional<std::string> VocabList::id_to_token(uint32_t id) const {
-        if (id >= id_to_string_map_.size()) return std::nullopt;
-        const std::string& token = id_to_string_map_[id];
-        if (token.empty()) return std::nullopt;
-        return token;
+    std::optional<std::string> VocabList::id_to_token(const int64_t token_id) const {
+        if (token_id >= id_to_string_map_.size()) return std::nullopt;
+        const std::string& token_str = id_to_string_map_[token_id];
+        if (token_str.empty()) return std::nullopt;
+        return token_str;
     }
 
 } // namespace nlp::encoder

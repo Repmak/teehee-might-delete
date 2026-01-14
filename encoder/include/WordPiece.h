@@ -18,11 +18,15 @@ namespace nlp::encoder {
                 bool to_lowercase,
                 bool strip_accents,
                 bool handle_chinese_chars,
-                std::size_t max_length
+                std::size_t max_length,
+                std::string padding_token="[PAD]",
+                std::string unknown_token="[UNK]",
+                std::string classification_token="[CLS]",
+                std::string separator_token="[SEP]",
+                std::string mask_token="[MASK]"
             );
 
             [[nodiscard]] std::vector<Token> encode(std::string_view text) const override;
-            [[nodiscard]] TokenRole identify_special_token(uint32_t id) const override;
 
             [[nodiscard]] size_t get_vocab_size() const override { return vocab_list_->size(); }
             [[nodiscard]] const VocabList& get_vocab_list() const { return *vocab_list_; }

@@ -22,7 +22,12 @@ namespace nlp::encoder {
         bool to_lowercase,
         bool strip_accents,
         bool handle_chinese_chars,
-        std::size_t max_length
+        std::size_t max_length,
+        std::string padding_token,
+        std::string unknown_token,
+        std::string classification_token,
+        std::string separator_token,
+        std::string mask_token
     ) : vocab_list_(std::make_unique<VocabList>()) {
 
         this->clean_text = clean_text;
@@ -30,6 +35,12 @@ namespace nlp::encoder {
         this->strip_accents = strip_accents;
         this->handle_chinese_chars = handle_chinese_chars;
         this->max_length = max_length;
+
+        vocab_list_->set_special_token(padding_token, TokenRole::Padding);
+        vocab_list_->set_special_token(unknown_token, TokenRole::Unknown);
+        vocab_list_->set_special_token(classification_token, TokenRole::Classification);
+        vocab_list_->set_special_token(separator_token, TokenRole::Separator);
+        vocab_list_->set_special_token(mask_token, TokenRole::Mask);
 
         std::ifstream file(config_path);
         if (!file.is_open()) {
@@ -42,10 +53,26 @@ namespace nlp::encoder {
             file >> config;
             auto vocab = config.at(json::json_pointer(vocab_key));
 
-            for (auto& [token, id] : vocab.items()) {
-                uint32_t token_id = id.get<uint32_t>();
-                if (!vocab_list_->set_token(token, token_id)) {
-                    std::cerr << "Warning: Could not set token '" << token << "' with ID " << token_id << std::endl;
+            for (auto& [token_str, id] : vocab.items()) {
+                int64_t token_id = id.get<int64_t>();
+                if (!vocab_list_->set_token(token_str, token_id)) {
+                    std::cerr << "Warning: Could not set token '" << token_str << "' with ID " << token_id << std::endl;
+                }
+            }
+
+            std::vector<std::pair<std::string, std::string>> required_tokens = {
+                {padding_token, "Padding"},
+                {unknown_token, "Unknown"},
+                {classification_token, "Classification"},
+                {separator_token, "Separator"},
+                {mask_token, "Mask"}
+            };
+
+            for (const auto& [token_str, role_name] : required_tokens) {
+                if (vocab_list_->token_to_id(token_str) == std::nullopt) {
+                    throw std::runtime_error(
+                        "Special token '" + token_str + "' (" + role_name + ") not found in vocabulary file."
+                    );
                 }
             }
         } catch (const json::parse_error& e) {
@@ -56,16 +83,6 @@ namespace nlp::encoder {
 
 
     // PUBLIC METHODS --------------------------------------------------------------------------------------------------
-
-    TokenRole WordPiece::identify_special_token(uint32_t id) const {
-        auto special = vocab_list_->get_special_ids();
-        if (special.padding && id == *special.padding) return TokenRole::Padding;
-        if (special.classification && id == *special.classification) return TokenRole::Classification;
-        if (special.separator && id == *special.separator) return TokenRole::Separator;
-        if (special.unknown && id == *special.unknown) return TokenRole::Unknown;
-        if (special.mask && id == *special.mask) return TokenRole::Mask;
-        return TokenRole::None;
-    }
 
     std::vector<Token> WordPiece::encode(std::string_view text) const {
         std::string normalised_text(text);  // Local copy to work with.
@@ -94,7 +111,7 @@ namespace nlp::encoder {
     std::vector<std::string_view> WordPiece::split_text(std::string_view text) const {
         std::vector<std::string_view> words;
         size_t i = 0;
-        size_t n = text.length();
+        const size_t n = text.length();
 
         while (i < n) {
             // Skip Whitespace.
@@ -110,7 +127,7 @@ namespace nlp::encoder {
                 continue;
             }
 
-            size_t start = i;
+            const size_t start = i;
             while (
                 i < n &&
                 !std::isspace(static_cast<unsigned char>(text[i])) &&
@@ -127,12 +144,8 @@ namespace nlp::encoder {
         size_t start = 0;
         const size_t n = word.length();
 
-        // Safety check for UNK token.
-        auto special_ids = vocab_list_->get_special_ids();
-        if (!special_ids.unknown) {
-            std::cerr << "Missing special token: Unknown" << std::endl;
-            exit(-1);
-        }
+        std::string unknown_token_str = vocab_list_->get_special_token_val(TokenRole::Unknown);
+        int64_t unknown_token_id = vocab_list_->token_to_id(unknown_token_str).value();
 
         while (start < n) {
             size_t end = n;
@@ -144,8 +157,7 @@ namespace nlp::encoder {
 
                 if (start > 0) substr.insert(0, "##");
 
-                auto id = vocab_list_->token_to_id(substr);
-                if (id) {
+                if (auto id = vocab_list_->token_to_id(substr)) {
                     best_id = id;
                     best_substr = std::move(substr);
                     break;
@@ -154,57 +166,44 @@ namespace nlp::encoder {
             }
 
             // Entire word is unknown if a match cannot be found.
-            if (!best_id.has_value()) {
-                return { Token{
-                    special_ids.unknown.value(), std::string(word), 0, word.length(), TokenRole::Unknown
-                } };
-            }
+            if (!best_id.has_value()) return {Token{unknown_token_id, std::string(word), 1, 0}};
 
-            tokens.push_back(Token{
-                best_id.value(), best_substr, start, end, TokenRole::None
-            });
+            tokens.push_back(Token{best_id.value(), best_substr, 1, 0});
             start = end;
         }
         return tokens;
     }
 
     void WordPiece::post_processing(std::vector<Token>& tokens) const {
-        // Safety check for CLS, SEP, and PAD tokens.
-        auto special_ids = vocab_list_->get_special_ids();
-        if (!special_ids.classification) {
-            std::cerr << "Missing special token: Classification" << std::endl;
-            exit(-1);
-        }
-        if (!special_ids.separator) {
-            std::cerr << "Missing special token: Separator" << std::endl;
-            exit(-1);
-        }
-        if (!special_ids.padding) {
-            std::cerr << "Missing special token: Padding" << std::endl;
-            exit(-1);
-        }
+        std::string classification_token_str = vocab_list_->get_special_token_val(TokenRole::Classification);
+        int64_t classification_token_id = vocab_list_->token_to_id(classification_token_str).value();
+        std::string separator_token_str = vocab_list_->get_special_token_val(TokenRole::Separator);
+        int64_t separator_token_id = vocab_list_->token_to_id(separator_token_str).value();
+        std::string padding_token_str = vocab_list_->get_special_token_val(TokenRole::Padding);
+        int64_t padding_token_id = vocab_list_->token_to_id(padding_token_str).value();
 
         // Reserve index 0 for [CLS] and index 127 for [SEP].
         if (tokens.size() > (max_length - 2)) {
             tokens.resize(max_length - 2);
-            std::cerr << "Warning: Tokens truncated. max_length = 128." << std::endl;
+            std::cerr << "Warning: Tokens truncated. max_length = " << max_length << std::endl;
         }
 
-        tokens.insert(tokens.begin(), Token{
-                special_ids.classification.value(), "[CLS]", 0, 0, TokenRole::Classification
-        });
+        tokens.insert(
+            tokens.begin(),
+            Token{classification_token_id, "", 1, 0}
+        );
 
-        tokens.push_back(Token{
-            special_ids.separator.value(), "[SEP]", 0, 0, TokenRole::Separator
-        });
+        tokens.push_back(
+            Token{separator_token_id, "", 1, 0}
+        );
 
         // Add padding if necessary.
         if (tokens.size() < max_length) {
             tokens.reserve(max_length);
             while (tokens.size() < max_length) {
-                tokens.push_back(Token{
-                    special_ids.padding.value(), "[PAD]", 0, 0, TokenRole::Padding
-                });
+                tokens.push_back(
+                    Token{padding_token_id, "", 0, 0}
+                );
             }
         }
     }
@@ -257,7 +256,7 @@ namespace nlp::encoder {
     }
 
     void WordPiece::handle_chinese_chars_inplace(std::string& text) const {
-            std::cerr << "Warning: Method handle_chinese_chars is not implemented" << std::endl;
+            std::cerr << "Warning: Method handle_chinese_chars_inplace is not implemented" << std::endl;
     }
 
 } // namespace nlp::encoder

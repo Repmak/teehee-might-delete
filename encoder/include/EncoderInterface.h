@@ -9,11 +9,10 @@
 namespace nlp::encoder {
 
     struct Token {
-        uint32_t id;          // The numerical ID according to the model.
-        std::string text;     // The original string representation.
-        size_t start_offset;  // Start position in the original string.
-        size_t end_offset;    // End position in the original string.
-        TokenRole type;       // For special tokens.
+        int64_t id;              // The numerical ID according to the model's vocabulary.
+        std::string text;        // The original string representation (not strictly needed by the Onnx model).
+        int64_t attention_mask;  // 1 for real tokens, 0 for padding.
+        int64_t token_type_id;   // Defines what sentence the token belongs to.
     };
 
     class EncoderInterface {
@@ -22,9 +21,6 @@ namespace nlp::encoder {
 
             // Returns the total vocabulary size.
             virtual size_t get_vocab_size() const = 0;
-
-            // Checks if the token linked to the parameter id is a special token.
-            virtual TokenRole identify_special_token(uint32_t id) const = 0;
 
             // Encodes raw text into a Token object.
             virtual std::vector<Token> encode(std::string_view text) const = 0;

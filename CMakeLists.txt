@@ -27,8 +27,8 @@ add_executable(${PROJECT_NAME}
         encoder/include/VocabList.h
         encoder/include/WordPiece.h
 
-        inference/src/OnnxModel.cpp
-        inference/include/OnnxModel.h
+#        inference/src/ORTWrapper.cpp
+#        inference/include/ORTWrapper.h
 )
 
 # Tells the compiler where to look for include files.

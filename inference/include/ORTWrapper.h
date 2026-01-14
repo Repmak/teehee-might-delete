@@ -5,9 +5,9 @@
 
 namespace nlp::inference {
 
-    class OnnxModel {
+    class ORTWrapper {
         public:
-            OnnxModel(const std::string& model_path);
+            ORTWrapper(const std::string& model_path);
 
             std::vector<float> run(
                 const std::vector<int64_t>& input_ids,
