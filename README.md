@@ -6,7 +6,7 @@ Still in development!
 
 C++ library for tokenization and embedding extraction.
 
-**Why use it?** This project enables BERT-based WordPiece tokenization and Onnx inference within C++, replicating the ease of use of Python's sentence-transformers.
+**Why use it?** This project enables BERT-based WordPiece tokenization and Onnx inference within C++, replicating the ease of use of Python's `sentence-transformers`.
 
 
 todo:
