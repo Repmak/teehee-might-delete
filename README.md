@@ -13,7 +13,7 @@ This section will outline all the key details to get SentenCPP working on your m
 
 
 ### 2.1 Model Compatibility
-SentenCPP supports any transformer model that uses WordPiece tokenization and follows the BERT/DistilBERT architecture exported to ONNX. This includes models like `all-MiniLM-L6-v2` and `bert-base-uncased`. Exporting to ONNX can be done using the Hugging Face Optimum library. It provides a quick and easy way of exporting models to the ONNX format.
+SentenCPP supports any transformer model that uses WordPiece tokenization and follows the BERT/DistilBERT architecture exported to ONNX. This includes models like `all-MiniLM-L6-v2` and `bert-base-uncased`. Exporting to ONNX can be done using Hugging Face Optimum. It provides a quick and easy way of exporting models to the ONNX format.
 
 **Step 1:** Install the following requirements.
 ```bash
@@ -21,7 +21,7 @@ pip install "optimum[exporters]"
 pip install "optimum[onnxruntime]"
 ```
     
-**Step 2:** Run the export. Substitute `all-MiniLM-L6-v2` for a model of your choice.
+**Step 2:** Run the export, substituting `all-MiniLM-L6-v2` for a model of your choice.
 ```bash
 optimum-cli export onnx --model sentence-transformers/all-MiniLM-L6-v2 --task default sentencpp_model/
 ```
@@ -31,17 +31,12 @@ optimum-cli export onnx --model sentence-transformers/all-MiniLM-L6-v2 --task de
 ### 2.2 Configuring ICU4C
 SentenCPP relies on ICU4C for text normalisation. If you already have ICU4C in your system's default library path you may be able to skip the steps below.
 
-**Step 1:** Run the following build. You must ensure that CMake can locate the library on your system.
+**Step 1:** Run the following build, substituting `PATH_TO_ICU` with the appropriate `ICU_ROOT` for your operating system. For example, on macOS (Homebrew), this will be `/opt/homebrew/opt/icu4c`.
 ```bash
 mkdir build && cd build
 cmake .. -DICU_ROOT=<PATH_TO_ICU>  # Substitute!
 cmake --build .
 ```
-
-Make sure to substitute `PATH_TO_ICU` with the appropriate `ICU_ROOT` for your operating system:
-- macOS (Homebrew): `/opt/homebrew/opt/icu4c`
-- Linux (Ubuntu/Debian): `/usr/include/unicode`
-- Windows: This will depend on where you extracted the ICU binaries. For example, `C:/Libraries/icu4c`.
 
 **Step 2:** Within CLion, navigate to `Settings` > `Build, Execution, Deployment` > `CMake`.
 
@@ -58,7 +53,22 @@ todo
 <br/>
 
 ## 4. API Reference
-todo
+SentenCPP is organised into three primary namespaces to handle the following distinct stages: 
+- [**4.1 Tokenizer**](#41-sentencpptokenizer)
+- [**4.2 Inference**](#42-sentencppinference)
+- [**4.3 Embedding Utils**](#43-sentencppembedding_utils)
+
+### 4.1 `sentencpp::tokenizer`
+This handles the conversion of raw strings into sequences of tokens compatible with transformer models.
+
+
+### 4.2 `sentencpp::inference`
+This namespace performs the execution of ONNX models through ONNX Runtime.
+
+
+### 4.3 `sentencpp::embedding_utils`
+Contains static methods for mathematical operations on vectors.
+
 
 <br/>
 
@@ -78,11 +88,3 @@ done:
 - vocab list class for storing model's vocabulary
 - max match tokenizer (and most of the normalisation required)
 - onnx engine (basically ort wrapper) to get embeddings for a sequence of tokens
-
-Go to Settings > Build, Execution, Deployment > CMake and set CMake Options to '-DICU_ROOT=/opt/homebrew/opt/icu4c' (or the win/linus equivalent)
-
-
-to export to onnx:
-pip install "optimum[exporters]"
-pip install optimum[onnxruntime]
-optimum-cli export onnx --model dbmdz/bert-large-cased-finetuned-conll03-english --task token-classification bert_ner_onnx/
