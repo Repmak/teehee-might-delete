@@ -15,7 +15,7 @@ namespace nlp::embedding_utils {
         int valid_token_count = 0;
 
         for (size_t i = 0; i < token_embeddings.size(); ++i) {
-            // ONLY process tokens where attention_mask is 1 (ignores [PAD])
+            // Only process tokens where attention_mask is 1 (ignore padding).
             if (original_tokens[i].attention_mask == 1) {
                 valid_token_count++;
                 for (size_t d = 0; d < hidden_size; ++d) {
@@ -25,9 +25,7 @@ namespace nlp::embedding_utils {
         }
 
         if (valid_token_count > 0) {
-            for (float& val : sentence_embedding) {
-                val /= static_cast<float>(valid_token_count);
-            }
+            for (float& val : sentence_embedding) val /= static_cast<float>(valid_token_count);
         }
 
         return sentence_embedding;

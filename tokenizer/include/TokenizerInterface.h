@@ -28,7 +28,7 @@ namespace nlp::tokenizer {
         std::string mask_token = "[MASK]";
     };
 
-    struct MaxMatchConfig : public BaseConfig {
+    struct WordPieceConfig : public BaseConfig {
         std::string config_path;  // Path to the config file. Eg: "tokenizer.json".
         std::string vocab_key;  // Path to the vocabulary object within the config file. Eg: "/model/vocab".
     };

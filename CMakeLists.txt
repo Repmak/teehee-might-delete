@@ -23,9 +23,9 @@ add_executable(${PROJECT_NAME}
 
         tokenizer/include/TokenizerInterface.h
         tokenizer/include/VocabList.h
-        tokenizer/include/MaxMatch.h
+        tokenizer/include/WordPiece.h
         tokenizer/src/VocabList.cpp
-        tokenizer/src/MaxMatch.cpp
+        tokenizer/src/WordPiece.cpp
 #        tokenizer/src/BPE.cpp
 #        tokenizer/src/Unigram.cpp
 #        tokenizer/include/Unigram.h

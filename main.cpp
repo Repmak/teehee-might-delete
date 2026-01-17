@@ -1,18 +1,18 @@
 #include <iostream>
 #include <iomanip>
 
-#include "./tokenizer/include/MaxMatch.h"
+#include "./tokenizer/include/WordPiece.h"
 #include "./inference/include/OnnxEngine.h"
 #include "./embedding_utils/include/VectorMaths.h"
 
 
 int main() {
     try {
-        nlp::tokenizer::MaxMatchConfig config;
+        nlp::tokenizer::WordPieceConfig config;
         config.config_path = std::string(PROJECT_ROOT_PATH) + "/onnx_models/sentence-transformers-all-mini-lm-l6-v2/tokenizer.json";
         config.vocab_key = "/model/vocab";
 
-        const nlp::tokenizer::MaxMatch tokenizer(config);
+        const nlp::tokenizer::WordPiece tokenizer(config);
 
         // const auto& vocab = encoder.get_vocab_list();
         // std::unordered_map<std::string, int64_t> string_map = vocab.get_string_to_id_map();

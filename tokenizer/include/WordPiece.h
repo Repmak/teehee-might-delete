@@ -8,9 +8,9 @@
 
 namespace nlp::tokenizer {
 
-    class MaxMatch : public TokenizerInterface {
+    class WordPiece : public TokenizerInterface {
         public:
-            explicit MaxMatch(const MaxMatchConfig& config);
+            explicit WordPiece(const WordPieceConfig& config);
 
             [[nodiscard]] std::vector<Token> tokenize(std::string_view text) const override;
 
@@ -18,7 +18,7 @@ namespace nlp::tokenizer {
             [[nodiscard]] const VocabList& get_vocab_list() const { return *vocab_list_; }
 
         private:
-            MaxMatchConfig config_;
+            WordPieceConfig config_;
             std::unique_ptr<VocabList> vocab_list_;
 
             // Splits text by whitespace and punctuation.
@@ -31,10 +31,10 @@ namespace nlp::tokenizer {
             void post_processing(std::vector<Token>& tokens) const;
 
             // Normalising user input.
-            void clean_text_inplace(std::string& text) const;
-            void to_lowercase_inplace(std::string& text) const;
-            void strip_accents_inplace(std::string& text) const;
-            void handle_chinese_chars_inplace(std::string& text) const;
+            static void clean_text_inplace(std::string& text);
+            static void to_lowercase_inplace(std::string& text);
+            static void strip_accents_inplace(std::string& text);
+            static void handle_chinese_chars_inplace(std::string& text);
     };
 
 } // namespace nlp::tokenizer
