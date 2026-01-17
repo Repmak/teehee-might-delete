@@ -1,12 +1,17 @@
-# teehee-might-delete
+# still thinking of a name for this repo
 
 Still in development!
 
+## Overview
+
+C++ library for tokenization and embedding extraction. This project enables BERT-based WordPiece tokenization and Onnx inference within C++, replicating the ease of use of Python's `sentence-transformers`.
+
+
 todo:
 - fix token segment ids
-- handle sequences which exceed max token length
+- handle sequences which exceed max token length (use overlap and pass each batch into the onnx model)
 - use prefix trie to avoid o(n^2) of max match algo
-- implement bpe and unigram tokenizers
+- implement bpe and unigram tokenizers (not necessary for bert though)
 - support bin/h5 files?
 
 done:
