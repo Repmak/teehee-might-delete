@@ -5,39 +5,14 @@
 #include "./inference/include/OnnxEngine.h"
 #include "./embedding_utils/include/VectorMaths.h"
 
-/**
- * todo:
- * segment id is always 0 right now. figure out a solution. https://medium.com/artiwise-nlp/text-segmentation-and-its-applications-to-aspect-based-sentiment-analysis-fb115f9ab4e9
- * tokens are truncated if there are too many of them. figure out a solution.
- * handle .bin/.h5 files?
- */
-
-using ConfigMap = std::unordered_map<std::string, std::variant<std::string, int, bool>>;
 
 int main() {
     try {
-        ConfigMap hf_model = {
-            {"config_path", std::string(PROJECT_ROOT_PATH) + "/onnx_models/sentence-transformers-all-mini-lm-l6-v2/tokenizer.json"},
-            {"model_path", std::string(PROJECT_ROOT_PATH) + "/onnx_models/sentence-transformers-all-mini-lm-l6-v2/model.onnx"},
-            {"vocab_key", std::string("/model/vocab")},
-            {"clean_text", true},
-            {"to_lowercase", true},
-            {"strip_accents", true},
-            {"handle_chinese_chars", true},
-            {"max_input_chars_per_word", 100},
-            {"max_length", 128}
-        };
+        nlp::tokenizer::MaxMatchConfig config;
+        config.config_path = std::string(PROJECT_ROOT_PATH) + "/onnx_models/sentence-transformers-all-mini-lm-l6-v2/tokenizer.json";
+        config.vocab_key = "/model/vocab";
 
-        const nlp::tokenizer::MaxMatch tokenizer(
-            std::get<std::string>(hf_model["config_path"]),
-            std::get<std::string>(hf_model["vocab_key"]),
-            std::get<bool>(hf_model["clean_text"]),
-            std::get<bool>(hf_model["to_lowercase"]),
-            std::get<bool>(hf_model["strip_accents"]),
-            std::get<bool>(hf_model["handle_chinese_chars"]),
-            std::get<int>(hf_model["max_input_chars_per_word"]),
-            std::get<int>(hf_model["max_length"])
-        );
+        const nlp::tokenizer::MaxMatch tokenizer(config);
 
         // const auto& vocab = encoder.get_vocab_list();
         // std::unordered_map<std::string, int64_t> string_map = vocab.get_string_to_id_map();
@@ -64,7 +39,7 @@ int main() {
         // }
 
         nlp::inference::OnnxEngine engine(
-            std::get<std::string>(hf_model["model_path"])
+            std::string(PROJECT_ROOT_PATH) + "/onnx_models/sentence-transformers-all-mini-lm-l6-v2/model.onnx"
         );
 
         std::vector<std::vector<float>> embeddings = engine.encode(tokens);

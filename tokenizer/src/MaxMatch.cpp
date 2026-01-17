@@ -10,50 +10,31 @@
 #include <nlohmann/json.hpp>
 #include "MaxMatch.h"
 
-
 using json = nlohmann::json;
 
 namespace nlp::tokenizer {
 
-    MaxMatch::MaxMatch(
-        const std::string& config_path,  // Eg: "tokenizer.json".
-        const std::string& vocab_key,  // Eg: "/model/vocab".
-        bool clean_text,
-        bool to_lowercase,
-        bool strip_accents,
-        bool handle_chinese_chars,
-        std::size_t max_input_chars_per_word,
-        std::size_t max_length,
-        std::string padding_token,
-        std::string unknown_token,
-        std::string classification_token,
-        std::string separator_token,
-        std::string mask_token
-    ) : vocab_list_(std::make_unique<VocabList>()) {
+    MaxMatch::MaxMatch(const MaxMatchConfig& config) :
+        config_(config),
+        vocab_list_(std::make_unique<VocabList>())
+    {
 
-        this->clean_text = clean_text;
-        this->to_lowercase = to_lowercase;
-        this->strip_accents = strip_accents;
-        this->handle_chinese_chars = handle_chinese_chars;
-        this->max_input_chars_per_word = max_input_chars_per_word;
-        this->max_length = max_length;
+        vocab_list_->set_special_token(config_.padding_token, TokenRole::Padding);
+        vocab_list_->set_special_token(config_.unknown_token, TokenRole::Unknown);
+        vocab_list_->set_special_token(config_.classification_token, TokenRole::Classification);
+        vocab_list_->set_special_token(config_.separator_token, TokenRole::Separator);
+        vocab_list_->set_special_token(config_.mask_token, TokenRole::Mask);
 
-        vocab_list_->set_special_token(padding_token, TokenRole::Padding);
-        vocab_list_->set_special_token(unknown_token, TokenRole::Unknown);
-        vocab_list_->set_special_token(classification_token, TokenRole::Classification);
-        vocab_list_->set_special_token(separator_token, TokenRole::Separator);
-        vocab_list_->set_special_token(mask_token, TokenRole::Mask);
-
-        std::ifstream file(config_path);
+        std::ifstream file(config_.config_path);
         if (!file.is_open()) {
-            std::cerr << "Unable to open config file: " << config_path << std::endl;
+            std::cerr << "Unable to open config file: " << config_.config_path << std::endl;
             exit(-1);
         }
 
         try {
-            json config;
-            file >> config;
-            auto vocab = config.at(json::json_pointer(vocab_key));
+            json tokenizer_config;
+            file >> tokenizer_config;
+            auto vocab = tokenizer_config.at(json::json_pointer(config_.vocab_key));
 
             for (auto& [token_str, id] : vocab.items()) {
                 int64_t token_id = id.get<int64_t>();
@@ -63,11 +44,11 @@ namespace nlp::tokenizer {
             }
 
             std::vector<std::pair<std::string, std::string>> required_tokens = {
-                {padding_token, "Padding"},
-                {unknown_token, "Unknown"},
-                {classification_token, "Classification"},
-                {separator_token, "Separator"},
-                {mask_token, "Mask"}
+                {config_.padding_token, "Padding"},
+                {config_.unknown_token, "Unknown"},
+                {config_.classification_token, "Classification"},
+                {config_.separator_token, "Separator"},
+                {config_.mask_token, "Mask"}
             };
 
             for (const auto& [token_str, role_name] : required_tokens) {
@@ -88,10 +69,10 @@ namespace nlp::tokenizer {
 
     std::vector<Token> MaxMatch::tokenize(std::string_view text) const {
         std::string normalised_text(text);  // Local copy to work with.
-        if (clean_text) clean_text_inplace(normalised_text);
-        if (to_lowercase) to_lowercase_inplace(normalised_text);
-        if (strip_accents) strip_accents_inplace(normalised_text);
-        if (handle_chinese_chars) handle_chinese_chars_inplace(normalised_text);
+        if (config_.clean_text) clean_text_inplace(normalised_text);
+        if (config_.to_lowercase) to_lowercase_inplace(normalised_text);
+        if (config_.strip_accents) strip_accents_inplace(normalised_text);
+        if (config_.handle_chinese_chars) handle_chinese_chars_inplace(normalised_text);
 
         std::cout << "Normalised text: " << normalised_text << std::endl;
 
@@ -160,7 +141,7 @@ namespace nlp::tokenizer {
         std::string unknown_token_str = vocab_list_->get_special_token_val(TokenRole::Unknown);
         int64_t unknown_token_id = vocab_list_->token_to_id(unknown_token_str).value();
 
-        if (n >= max_input_chars_per_word) return {Token{unknown_token_id, std::string(word), 1, 0}};
+        if (n >= config_.max_input_chars_per_word) return {Token{unknown_token_id, std::string(word), 1, 0}};
 
         while (start < n) {
             size_t end = n;
@@ -198,18 +179,18 @@ namespace nlp::tokenizer {
         int64_t padding_token_id = vocab_list_->token_to_id(padding_token_str).value();
 
         // Reserve index 0 for [CLS] and index 127 for [SEP].
-        if (tokens.size() > (max_length - 2)) {
-            tokens.resize(max_length - 2);
-            std::cerr << "Warning: Tokens truncated. max_length = " << max_length << std::endl;
+        if (tokens.size() > (config_.max_length - 2)) {
+            tokens.resize(config_.max_length - 2);
+            std::cerr << "Warning: Tokens truncated. max_length = " << config_.max_length << std::endl;
         }
 
         tokens.insert(tokens.begin(), Token{classification_token_id, "", 1, 0});
         tokens.push_back(Token{separator_token_id, "", 1, 0});
 
         // Add padding if necessary.
-        if (tokens.size() < max_length) {
-            tokens.reserve(max_length);
-            while (tokens.size() < max_length) {
+        if (tokens.size() < config_.max_length) {
+            tokens.reserve(config_.max_length);
+            while (tokens.size() < config_.max_length) {
                 tokens.push_back(Token{padding_token_id, "", 0, 0});
             }
         }

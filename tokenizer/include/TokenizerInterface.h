@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <string_view>
-
 #include "VocabList.h"
 
 namespace nlp::tokenizer {
@@ -13,6 +12,33 @@ namespace nlp::tokenizer {
         std::string text;        // The original string representation (not strictly needed by the Onnx model).
         int64_t attention_mask;  // 1 for real tokens, 0 for padding.
         int64_t segment_id;      // Defines what sentence the token belongs to.
+    };
+
+    struct BaseConfig {
+        std::size_t max_input_chars_per_word = 100;
+        std::size_t max_length = 128;
+        bool to_lowercase = true;
+        bool strip_accents = true;
+        bool clean_text = true;
+        bool handle_chinese_chars = true;
+        std::string padding_token = "[PAD]";
+        std::string unknown_token = "[UNK]";
+        std::string classification_token = "[CLS]";
+        std::string separator_token = "[SEP]";
+        std::string mask_token = "[MASK]";
+    };
+
+    struct MaxMatchConfig : public BaseConfig {
+        std::string config_path;  // Path to the config file. Eg: "tokenizer.json".
+        std::string vocab_key;  // Path to the vocabulary object within the config file. Eg: "/model/vocab".
+    };
+
+    struct BPEConfig : public BaseConfig {
+        // todo
+    };
+
+    struct UnigramConfig : public BaseConfig {
+        // todo
     };
 
     class TokenizerInterface {
