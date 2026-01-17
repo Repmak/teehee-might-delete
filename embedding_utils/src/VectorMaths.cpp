@@ -44,4 +44,22 @@ namespace sentencpp::embedding_utils {
         return (norm_a == 0 || norm_b == 0) ? 0.0f : dot / (std::sqrt(norm_a) * std::sqrt(norm_b));
     }
 
+    std::vector<float> VectorMaths::calculate_softmax(
+        const std::vector<float>& logits
+    ) {
+        std::vector<float> probabilities(logits.size());
+
+        // Find max element.
+        float max_logit = *std::max_element(logits.begin(), logits.end());
+
+        float sum = 0.0f;
+        for (size_t i = 0; i < logits.size(); ++i) {
+            probabilities[i] = std::exp(logits[i] - max_logit);
+            sum += probabilities[i];
+        }
+
+        for (float& p : probabilities) p /= sum;
+        return probabilities;
+    }
+
 } // namespace sentencpp::embedding_utils
